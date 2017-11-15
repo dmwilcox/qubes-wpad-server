@@ -31,3 +31,5 @@ and persist firewall rule changes in ```/rw/config/qubes-firewall-user-script```
 ## Detailed Setup
 
 TODO
+
+stuff here

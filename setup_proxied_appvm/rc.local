@@ -1,0 +1,50 @@
+#!/bin/sh
+
+# This script will be executed at every VM startup, you can place your own
+# custom commands here. This include overriding some configuration in /etc,
+# starting services etc.
+#
+# You need to make this script executable to have it enabled.
+
+# Example for overriding the whole CUPS configuration:
+#  rm -rf /etc/cups
+#  ln -s /rw/config/cups /etc/cups
+#  systemctl --no-block restart cups
+
+# Qubes WPAD Server Setup
+
+# arbitrary external IP to lookup default route
+external_ip="8.8.8.8"
+
+# filtering proxy port (default for Privoxy)
+proxy_port=8118
+
+# Set if VM *other than* ProxyVM is acting as filtering proxy.
+# If either localhost is running privoxy or if another host will
+# act as the filtering proxy for the current host.
+#
+#proxy_ip=127.0.0.1
+
+# By default setup uses default gateway as filtering proxy.
+if [ -z "${proxy_ip}" ]; then
+  proxy_ip=$(ip route get ${external_ip}|awk {'print $3'}|xargs)
+fi
+
+/rw/config/bin/qubes-wpad-server -proxy ${proxy_ip}:${proxy_port} &
+
+# Add /etc/hosts entry for localhost to service auto-discovery data.
+if [ -z "$(egrep '127.0.0.1\W+wpad')" ]; then
+  echo '127.0.0.1 wpad' >> /etc/hosts
+fi
+
+
+# Over-write shortcuts to start apps with proxy settings.
+if [ -d /rw/config/shortcuts ]; then
+  for override_path in /rw/config/shortcuts/*; do
+    shortcut_file=$(basename ${override_path})
+    shortcut_path=/usr/share/applications/${shortcut_file}
+    if [ -f ${shortcut_path} ]; then
+      cp ${override_path} ${shortcut_path}
+    fi
+  done
+fi
